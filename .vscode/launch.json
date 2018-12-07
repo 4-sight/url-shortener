@@ -10,7 +10,8 @@
             "name": "Launch nodemon",
             "program": "${workspaceFolder}/node_modules/nodemon/bin/nodemon.js",
             "args": ["${workspaceFolder}/app.js"],
-            "runtimeArgs": ["--nolazy"]
+            "runtimeArgs": ["--nolazy"],
+            "envFile": "${workspaceFolder}/.env"
         },
         {
             "type": "node",
