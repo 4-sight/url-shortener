@@ -72,26 +72,30 @@ const createAndSaveMini = function(url) {
   })
 }
 
-const validateUrl = (url, done) => {
+const validateUrl = (url) => {
 
-  const trimmed = url.replace(/http[s]?:\/\//, "")
-
-  dns.lookup(trimmed, function(err, data) {
-    err
-    ? done(false)
-    : done(true)
+  const trimmed = url.replace(/http[s]?:\/\//, "");
+  
+  return new Promise((resolve) => {
+    dns.lookup(trimmed, (err) => {
+      err
+      ? resolve(false)
+      : resolve(true)
+    })
   })
 }
 
-const next = (val) => {
-  val
-  ? console.log("valid")
-  : console.log("invalid")
-}
+
 //------------------------------------------------------------
 app.post('/api/shorturl/new', function(req, res) {
-  validateUrl(req.body.url, next)
-  res.json(req.body.url)
+  const { url } = req.body
+  validateUrl(url)
+    .then(result => {
+      result 
+      ? res.json({url: "valid"})
+      : res.json({error: "invalid URL"})
+    })
+  
 })
 
 app.listen(port, function () {
