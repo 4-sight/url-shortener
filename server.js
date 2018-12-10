@@ -137,6 +137,18 @@ app.post('/api/shorturl/new', function(req, res) {
   
 })
 
+app.get('/api/shorturl/:index', function(req, res) {
+  const { index } = req.params
+  Mini.findOne({miniId: index}, (err, data) => {
+    
+    if(!data) {
+      res.json({error: "short url does not exist"})
+    } else {
+      res.redirect(data._doc.url)
+    }
+  })
+})
+
 app.listen(port, function () {
   console.log(`Node.js listening on port:${port}`);
 });
