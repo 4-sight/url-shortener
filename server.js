@@ -6,7 +6,6 @@ var mongoose = require('mongoose');
 var bodyParser = require('body-parser')
 var cors = require('cors');
 const dns = require('dns')
-
 var app = express();
 
 // Basic Configuration 
@@ -21,10 +20,7 @@ db.once("open", function() {
 })
 
 app.use(cors());
-
-/** this project needs to parse POST bodies **/
 app.use(bodyParser.urlencoded({extended: false}))
-
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.get('/', function(req, res){
@@ -36,11 +32,17 @@ const counterSchema = new mongoose.Schema({
   index: {type: Number, default: 1},
 })
 
+const miniSchema = new mongoose.Schema({
+  url: String,
+  miniId: Number
+})
+
+const Mini = mongoose.model("mini", miniSchema)
 const Counter = mongoose.model("counter", counterSchema)
 
-const findAndUpdateCounter = function() {
+const createAndSaveMini = async (url) => {
 
-  return new Promise((resolve, reject) => {
+  const findAndUpdateCounter = new Promise((resolve, reject) => {
     Counter.findOneAndUpdate(
       {name: "miniCounter"},
       {$inc: {index: 1}},
@@ -61,45 +63,26 @@ const findAndUpdateCounter = function() {
           ? reject(err)
           : resolve(data)
         }
-        
       })
   })
-}
 
-const miniSchema = new mongoose.Schema({
-  url: String,
-  miniId: Number
-})
+  const createEntry = (index) => new Promise ((resolve, reject) => {
 
-const Mini = mongoose.model("mini", miniSchema)
+    const entry = new Mini({
+      url: url,
+      miniId: index
+    })
 
-const createAndSaveMini = function(url) {
-
-  return new Promise ((resolve, reject) => {
-
-    const createEntry = (index) => {
-      const entry = new Mini({
-        url: url,
-        miniId: index
-      })
-
-      return new Promise ((resolve, reject) => {
-        entry.save(function(err, data) {
-          err
-          ? reject(err)
-          : resolve(data)
-        })
-      })
-    }
-
-    findAndUpdateCounter()
-      .then( ({index}) => {
-        createEntry(index)
-          .then(result => resolve(result._doc))
-          .catch(err => reject(err))
-        }
-      )
+    entry.save(function(err, data) {
+      err
+      ? reject(err)
+      : resolve(data)
+    })
   })
+
+  let index = await findAndUpdateCounter.then(result => result.index)
+  let savedEntry = await createEntry(index)
+  return savedEntry
 }
 
 
