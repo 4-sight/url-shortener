@@ -38,18 +38,19 @@ const counterSchema = new mongoose.Schema({
 
 const Counter = mongoose.model("counter", counterSchema)
 
-const done = (data) => {console.log(data.index)}
+const findAndUpdateCounter = function() {
 
-const findAndUpdateCounter = function(done) {
-  Counter.findOneAndUpdate(
-    {name: "miniCounter"},
-    {$inc: {index: 1}},
-    {upsert: true, setDefaultsOnInsert: true},
-    function(err, data) {
-      err
-      ? console.log(err)
-      : done(data)
-    })
+  return new Promise((resolve, reject) => {
+    Counter.findOneAndUpdate(
+      {name: "miniCounter"},
+      {$inc: {index: 1}},
+      {upsert: true, setDefaultsOnInsert: true},
+      function(err, data) {
+        err
+        ? reject(err)
+        : resolve(data)
+      })
+  })
 }
 
 const miniSchema = new mongoose.Schema({
@@ -60,17 +61,34 @@ const miniSchema = new mongoose.Schema({
 const Mini = mongoose.model("mini", miniSchema)
 
 const createAndSaveMini = function(url) {
-  let counter = findAndUpdateCounter()
-  
-  const entry = new Mini({
-    url: url
-  })
-  return entry.save(function(err, data) {
-    err
-    ? console.log(err)
-    : data
+
+  return new Promise ((resolve, reject) => {
+
+    const createEntry = (index) => {
+      const entry = new Mini({
+        url: url,
+        miniId: index
+      })
+
+      return new Promise ((resolve, reject) => {
+        entry.save(function(err, data) {
+          err
+          ? reject(err)
+          : resolve(data)
+        })
+      })
+    }
+
+    findAndUpdateCounter()
+      .then( ({index}) => {
+        createEntry(index)
+          .then(result => resolve(result._doc))
+          .catch(err => reject(err))
+        }
+      )
   })
 }
+
 
 const validateUrl = (url) => {
 
@@ -85,6 +103,22 @@ const validateUrl = (url) => {
   })
 }
 
+const checkDB = (url) => {
+
+  return new Promise((resolve, reject) => {
+    Mini.findOne({url: url}, (err, doc) => {
+      if (err) {
+        reject("error")
+      } else
+      if (!doc) {
+        createAndSaveMini(url)
+          .then(newDoc => resolve(newDoc))
+      } else {
+        resolve(doc)
+      }
+    })
+  })
+}
 
 //------------------------------------------------------------
 app.post('/api/shorturl/new', function(req, res) {
@@ -92,7 +126,12 @@ app.post('/api/shorturl/new', function(req, res) {
   validateUrl(url)
     .then(result => {
       result 
-      ? res.json({url: "valid"})
+      ? checkDB(url)
+        .then(doc => res.json({
+          "original_url": doc.url,
+          "short_url": doc.miniId
+        }))
+        .catch(() => console.log("alert error!"))
       : res.json({error: "invalid URL"})
     })
   
