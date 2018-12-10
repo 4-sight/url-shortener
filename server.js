@@ -46,9 +46,22 @@ const findAndUpdateCounter = function() {
       {$inc: {index: 1}},
       {upsert: true, setDefaultsOnInsert: true},
       function(err, data) {
-        err
-        ? reject(err)
-        : resolve(data)
+        if (!data) {
+          Counter.findOneAndUpdate(
+            {name: "miniCounter"},
+            {$inc: {index: 1}},
+            function(err, data) {
+              err
+              ? reject(err)
+              : resolve(data)
+            }
+          )
+        } else {
+          err
+          ? reject(err)
+          : resolve(data)
+        }
+        
       })
   })
 }
